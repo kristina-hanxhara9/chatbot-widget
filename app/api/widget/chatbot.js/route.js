@@ -17,7 +17,28 @@ export async function GET(req) {
         position: 'right',
         businessName: 'Business Assistant',
         primaryColor: '#6366f1',
-        welcomeMessage: 'Hi there! How can I assist you today?'
+        welcomeMessage: 'Hi there! How can I assist you today?',
+        // Add default businessDetails
+        businessDetails: {
+          description: '',
+          industry: 'retail',
+          services: [],
+          features: [],
+          hours: 'Monday-Friday: 9AM-5PM',
+          location: '',
+          website: ''
+        },
+        // Add default aiPersonality
+        aiPersonality: {
+          personality: 'friendly',
+          isDetailed: false,
+          isConcise: true,
+          askFollowUp: true,
+          isEmpathetic: true,
+          knowledgeFocus: 'balanced',
+          useCustomPrompt: false,
+          customPrompt: ''
+        }
       };
       
       // Store references to chatbot elements
@@ -31,7 +52,40 @@ export async function GET(req) {
       // Initialize the chatbot widget
       window.initializeChatWidget = function(userConfig) {
         // Merge user config with defaults
-        config = { ...config, ...userConfig };
+        if (userConfig) {
+          // Handle nested objects properly
+          if (userConfig.businessDetails) {
+            config.businessDetails = {
+              ...config.businessDetails,
+              ...userConfig.businessDetails
+            };
+            
+            // Ensure services and features are arrays
+            if (typeof config.businessDetails.services === 'string') {
+              config.businessDetails.services = [config.businessDetails.services];
+            }
+            
+            if (typeof config.businessDetails.features === 'string') {
+              config.businessDetails.features = [config.businessDetails.features];
+            }
+            
+            // Delete businessDetails from userConfig to avoid duplication
+            delete userConfig.businessDetails;
+          }
+          
+          if (userConfig.aiPersonality) {
+            config.aiPersonality = {
+              ...config.aiPersonality,
+              ...userConfig.aiPersonality
+            };
+            
+            // Delete aiPersonality from userConfig to avoid duplication
+            delete userConfig.aiPersonality;
+          }
+          
+          // Merge remaining config
+          config = { ...config, ...userConfig };
+        }
         
         // Generate or retrieve session ID
         sessionId = getSessionId();
@@ -200,6 +254,9 @@ export async function GET(req) {
               message,
               sessionId,
               chatbotId: config.chatbotId,
+              // Pass additional config to the API
+              businessDetails: config.businessDetails,
+              aiPersonality: config.aiPersonality,
               metadata
             })
           });
