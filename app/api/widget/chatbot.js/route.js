@@ -23,6 +23,7 @@ export async function GET(req) {
       // Store references to chatbot elements
       let widgetContainer = null;
       let styleElement = null;
+      let sessionId = null;
       
       // Root URL for the chatbot API (current domain)
       const rootUrl = '${req.nextUrl.origin}';
@@ -31,6 +32,9 @@ export async function GET(req) {
       window.initializeChatWidget = function(userConfig) {
         // Merge user config with defaults
         config = { ...config, ...userConfig };
+        
+        // Generate or retrieve session ID
+        sessionId = getSessionId();
         
         // Create CSS styles
         injectStyles();
@@ -194,7 +198,7 @@ export async function GET(req) {
             },
             body: JSON.stringify({
               message,
-              sessionId: getSessionId(),
+              sessionId,
               chatbotId: config.chatbotId,
               metadata
             })
@@ -205,12 +209,37 @@ export async function GET(req) {
           // Remove typing indicator
           messages.removeChild(typingIndicator);
           
-          // Add assistant response
-          const assistantMessage = document.createElement('div');
-          assistantMessage.classList.add('chatbot-widget-message');
-          assistantMessage.classList.add('chatbot-widget-message-assistant');
-          assistantMessage.textContent = data.success ? data.message : "I'm sorry, I couldn't process your request.";
-          messages.appendChild(assistantMessage);
+          // Check for appointment booking intent
+          if (data.success && data.isAppointment) {
+            // Add message about booking system
+            const bookingIntroMessage = document.createElement('div');
+            bookingIntroMessage.classList.add('chatbot-widget-message');
+            bookingIntroMessage.classList.add('chatbot-widget-message-assistant');
+            bookingIntroMessage.textContent = "I can help you book an appointment. Our online booking system works best on our website. Would you like to continue to our booking page?";
+            messages.appendChild(bookingIntroMessage);
+            
+            // Add booking link
+            const bookingLinkContainer = document.createElement('div');
+            bookingLinkContainer.classList.add('chatbot-widget-message');
+            bookingLinkContainer.classList.add('chatbot-widget-message-assistant');
+            
+            const bookingLink = document.createElement('a');
+            bookingLink.href = \`\${rootUrl}/book?chatbotId=\${config.chatbotId}&sessionId=\${sessionId}\`;
+            bookingLink.target = "_blank";
+            bookingLink.classList.add('chatbot-widget-booking-link');
+            bookingLink.textContent = "Book Appointment";
+            bookingLink.style.backgroundColor = config.primaryColor;
+            
+            bookingLinkContainer.appendChild(bookingLink);
+            messages.appendChild(bookingLinkContainer);
+          } else {
+            // Add assistant response
+            const assistantMessage = document.createElement('div');
+            assistantMessage.classList.add('chatbot-widget-message');
+            assistantMessage.classList.add('chatbot-widget-message-assistant');
+            assistantMessage.textContent = data.success ? data.message : "I'm sorry, I couldn't process your request.";
+            messages.appendChild(assistantMessage);
+          }
           
           // Scroll to bottom
           messages.scrollTop = messages.scrollHeight;
@@ -374,6 +403,23 @@ export async function GET(req) {
           .chatbot-widget-theme-dark .chatbot-widget-message-assistant {
             background-color: #374151;
             color: #ffffff;
+          }
+          
+          /* Booking link */
+          .chatbot-widget-booking-link {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #6366f1;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            margin-top: 4px;
+            transition: all 0.2s ease;
+          }
+          
+          .chatbot-widget-booking-link:hover {
+            opacity: 0.9;
           }
           
           /* Typing indicator */

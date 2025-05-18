@@ -143,7 +143,7 @@ export default function ChatWidget({
     setShowBookingFlow(false);
     
     // Add confirmation message
-    const confirmationMessage = `Great! I've booked your appointment for ${bookingDetails.serviceName} on ${format(new Date(bookingDetails.dateTime), 'EEEE, MMMM d')} at ${format(new Date(bookingDetails.dateTime), 'h:mm a')}. We look forward to seeing you, ${bookingDetails.customerName}!`;
+    const confirmationMessage = `Great! I've booked your appointment for ${bookingDetails.serviceName} on ${format(new Date(bookingDetails.date), 'EEEE, MMMM d')} at ${bookingDetails.time}. We look forward to seeing you, ${bookingDetails.customerName}!`;
     
     setMessages(prev => [
       ...prev,
@@ -240,6 +240,7 @@ export default function ChatWidget({
                 <ChatBookingFlow 
                   chatbotId={chatbotId}
                   businessId={businessId}
+                  sessionId={sessionId}  // Pass session ID to booking flow
                   onComplete={handleBookingComplete}
                   onCancel={handleCancelBooking}
                 />
