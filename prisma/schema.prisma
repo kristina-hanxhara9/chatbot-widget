@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id             String           @id @default(cuid())
+  name           String
+  description    String?
+  industry       String
+  services       Service[]
+  features       String[]
+  hours          String?
+  location       String?
+  website        String?
+  chatbotId      String           @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  appointments   Appointment[]
+  documents      Document[]
+  schedule       BusinessSchedule?
+}
+
+model BusinessSchedule {
+  id                String           @id @default(cuid())
+  businessId        String           @unique
+  business          Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  weekdayHours      Json?            // Store operating hours by day of week
+  bufferTime        Int              @default(15)    // Minutes between appointments
+  appointmentLength Int              @default(30)    // Default appointment length in minutes
+  timezone          String           @default("UTC")
+  unavailableDates  UnavailableDate[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model UnavailableDate {
+  id                String           @id @default(cuid())
+  scheduleId        String
+  schedule          BusinessSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  date              DateTime
+  reason            String?
+  createdAt         DateTime         @default(now())
+}
+
+model Service {
+  id                String           @id @default(cuid())
+  businessId        String
+  business          Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  duration          Int              @default(30)    // Minutes
+  price             Float?
+  color             String?          // For calendar display
+  isActive          Boolean          @default(true)
+  appointments      Appointment[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  name       String
+  content    String   @db.Text
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Appointment {
+  id                String           @id @default(cuid())
+  customerId        String?
+  customerName      String
+  customerEmail     String?
+  customerPhone     String?
+  date              DateTime
+  endTime           DateTime?
+  duration          Int              @default(30)    // minutes
+  serviceId         String?
+  service           Service?         @relation(fields: [serviceId], references: [id])
+  notes             String?
+  status            String           @default("scheduled") // scheduled, completed, cancelled
+  businessId        String
+  business          Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  calendarEventId   String?          // For Google/Outlook calendar integration
+  reminderSent      Boolean          @default(false)
+  confirmationSent  Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  sessionId   String   @unique
+  messages    Message[]
+  businessId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  role           String   // user or assistant
+  content        String   @db.Text
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+}
